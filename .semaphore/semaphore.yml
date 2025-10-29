@@ -1,3 +1,4 @@
+---
 version: v1.0
 name: Validate and Deploy Pipeline
 agent:
@@ -5,28 +6,35 @@ agent:
     type: e1-standard-2
     os_image: ubuntu2004
 blocks:
-  - name: "Validate with Maven"
-    jobs:
-      - name: "Run mvn install"
-        commands:
-          - checkout
-          - cache restore
-          - sem-version java 21
-          - mvn clean install -DskipTests=false -Denforcer.skip=true
-          - cache store
-  - name: "Trigger Drone Deployment"
+  - name: Validate with Maven
+    task:
+      jobs:
+        - name: Run mvn install
+          commands:
+            - checkout
+            - cache restore
+            - sem-version java 21
+            - mvn clean install -DskipTests=false -Denforcer.skip=true
+            - cache store
+  - name: Trigger Drone Deployment
     dependencies:
-      - "Validate with Maven"
-    jobs:
-      - name: "Send CLI Command"
-        when: "branch = 'main'"
-        secrets:
-          - name: DRONE_TOKEN
-          - name: DRONE_SERVER
-        commands:
-          - echo "Installing Drone CLI..."
-          - wget -q https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz
-          - tar zxf drone_linux_amd64.tar.gz
-          - sudo install drone /usr/local/bin/
-          - echo "Triggering Drone build for ${SEMAPHORE_GIT_REPO_SLUG} on branch main..."
-          - drone build start ${SEMAPHORE_GIT_REPO_SLUG} main --server=${DRONE_SERVER} --token=${DRONE_TOKEN}
+      - Validate with Maven
+    task:
+      jobs:
+        - name: Send CLI Command
+          commands:
+            - echo "Installing Drone CLI..."
+            - wget -q
+              https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz
+            - tar zxf drone_linux_amd64.tar.gz
+            - sudo install drone /usr/local/bin/
+            - echo "Triggering Drone build for ${SEMAPHORE_GIT_REPO_SLUG} on
+              branch main..."
+            - drone build start ${SEMAPHORE_GIT_REPO_SLUG} main
+              --server=${DRONE_SERVER} --token=${DRONE_TOKEN}
+          secrets:
+            - name: DRONE_TOKEN
+            - name: DRONE_SERVER
+          when:
+            branch: main
+
