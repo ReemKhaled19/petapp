@@ -1,11 +1,9 @@
 version: v1.0
 name: Validate and Deploy Pipeline
-
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu2004
-
 blocks:
   - name: "Validate with Maven"
     jobs:
@@ -16,7 +14,6 @@ blocks:
           - sem-version java 21
           - mvn clean install -DskipTests=false -Denforcer.skip=true
           - cache store
-
   - name: "Trigger Drone Deployment"
     dependencies:
       - "Validate with Maven"
