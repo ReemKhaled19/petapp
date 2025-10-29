@@ -2,30 +2,46 @@ kind: pipeline
 type: docker
 name: build-and-push-from-ci
 
+services:
+  - name: docker
+    image: docker:27-dind
+    privileged: true
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+volumes:
+  - name: dockersock
+    temp: {}
+
 steps:
+  - name: wait-for-docker
+    image: docker:27-cli
+    volumes:
+      - name: dockersock
+        path: /var/run
+    commands:
+      - sleep 5
+      - docker version
+
   - name: build_and_push_to_dockerhub
-    image: plugins/docker
-    settings:
-      # Credentials from Drone Secrets
-      username:
+    image: docker:27-cli
+    volumes:
+      - name: dockersock
+        path: /var/run
+    environment:
+      DOCKER_USERNAME:
         from_secret: docker_username
-      password:
+      DOCKER_PASSWORD:
         from_secret: docker_password
-      # Docker Hub repository name
-      repo: mohamedelgarhy/spring-petclinic
-      # Tags for the image
-      tags:
-        - latest
-        - "${DRONE_COMMIT_SHA:0:8}"  # Short commit SHA
-        - "${DRONE_BUILD_NUMBER}"     # Build number
-      # Dockerfile location
-      dockerfile: Dockerfile
-      # Build arguments
-      build_args:
-        - BUILDKIT_INLINE_CACHE=1
-      # Optional: Add cache optimization
-      cache_from:
-        - mohamedelgarhy/spring-petclinic:latest
+    commands:
+      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      - docker build -t mohamedelgarhy/spring-petclinic:latest .
+      - docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
+      - docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
+      - docker push mohamedelgarhy/spring-petclinic:latest
+      - docker push mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
+      - docker push mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
 
 trigger:
   branch:
