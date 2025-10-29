@@ -1,0 +1,29 @@
+# ----- تم إزالة قسم "trigger" عمداً -----
+# هذا الـ Pipeline الآن لن يعمل إلا إذا تم استدعاؤه
+# بشكل مباشر عبر Webhook (وهو ما سيفعله Semaphore)
+
+kind: pipeline
+type: docker
+name: build-and-push-from-ci
+
+steps:
+- name: build_and_push_to_dockerhub
+  image: plugins/docker
+  settings:
+    # سيتم جلب هذه القيم من الـ Secrets في إعدادات Drone
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    # اسم الـ Repo على Docker Hub
+    repo: mohamedelgarhy/spring-petclinic
+    # الـ Tags
+    tags:
+      - latest
+      - ${DRONE_BUILD_NUMBER} # كل build ياخد رقم كـ Tag
+    # مكان الـ Dockerfile
+    dockerfile: Dockerfile
+    # تفعيل الكاش لعملية الـ build
+    build_args:
+      - BUILDKIT_INLINE_CACHE=1
+
