@@ -15,7 +15,6 @@ blocks:
             - checkout
             - cache restore
             - |
-              # Install Java 21
               wget -O- https://apt.corretto.aws/corretto.key | sudo apt-key add -
               sudo add-apt-repository 'deb https://apt.corretto.aws stable main'
               sudo apt-get update
@@ -38,9 +37,8 @@ blocks:
           commands:
             - |
               if [ "$SEMAPHORE_GIT_BRANCH" = "main" ]; then
-                echo "🚀 Triggering Drone build for ${SEMAPHORE_GIT_REPO_SLUG}..."
+                echo "Triggering Drone build for ${SEMAPHORE_GIT_REPO_SLUG}..."
                 
-                # بدء الـ build على Drone
                 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
                   -H "Authorization: Bearer ${DRONE_TOKEN}" \
                   "${DRONE_SERVER}/api/repos/${SEMAPHORE_GIT_REPO_SLUG}/builds" \
@@ -51,65 +49,61 @@ blocks:
                 BODY=$(echo "$RESPONSE" | head -n-1)
                 
                 if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
-                  echo "✅ Drone build triggered successfully!"
+                  echo "Drone build triggered successfully!"
                   echo "$BODY"
                   
-                  # استخرج الـ build number
                   BUILD_NUMBER=$(echo "$BODY" | grep -o '"number":[0-9]*' | head -1 | cut -d':' -f2)
                   
                   if [ -z "$BUILD_NUMBER" ]; then
-                    echo "❌ Could not extract build number from response"
+                    echo "Could not extract build number from response"
                     exit 1
                   fi
                   
-                  echo "📊 Build number: $BUILD_NUMBER"
-                  echo "🔗 Build URL: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
+                  echo "Build number: $BUILD_NUMBER"
+                  echo "Build URL: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
                   
-                  # استنى الـ build يخلص
                   echo ""
-                  echo "⏳ Waiting for Drone build to complete..."
+                  echo "Waiting for Drone build to complete..."
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   
-                  MAX_WAIT=600  # 10 دقائق max
+                  MAX_WAIT=600  
                   ELAPSED=0
-                  CHECK_INTERVAL=10  # كل 10 ثواني
+                  CHECK_INTERVAL=10  
                   
                   while [ $ELAPSED -lt $MAX_WAIT ]; do
                     sleep $CHECK_INTERVAL
                     ELAPSED=$((ELAPSED + CHECK_INTERVAL))
                     
-                    # اجلب حالة الـ build
                     STATUS_RESPONSE=$(curl -s \
                       -H "Authorization: Bearer ${DRONE_TOKEN}" \
                       "${DRONE_SERVER}/api/repos/${SEMAPHORE_GIT_REPO_SLUG}/builds/${BUILD_NUMBER}")
                     
                     BUILD_STATUS=$(echo "$STATUS_RESPONSE" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
                     
-                    # عرض الحالة بشكل واضح
                     case "$BUILD_STATUS" in
                       "success")
                         echo ""
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                        echo "🎉 Drone build completed SUCCESSFULLY!"
-                        echo "⏱️  Total time: ${ELAPSED} seconds"
+                        echo "Drone build completed SUCCESSFULLY!"
+                        echo "Total time: ${ELAPSED} seconds"
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                         exit 0
                         ;;
                       "failure")
                         echo ""
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                        echo "❌ Drone build FAILED!"
-                        echo "⏱️  Time elapsed: ${ELAPSED} seconds"
-                        echo "🔗 Check logs: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
+                        echo "Drone build FAILED!"
+                        echo "Time elapsed: ${ELAPSED} seconds"
+                        echo "Check logs: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                         exit 1
                         ;;
                       "error"|"killed")
                         echo ""
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                        echo "💥 Drone build ERROR!"
-                        echo "⏱️  Time elapsed: ${ELAPSED} seconds"
-                        echo "🔗 Check logs: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
+                        echo "Drone build ERROR!"
+                        echo "Time elapsed: ${ELAPSED} seconds"
+                        echo "Check logs: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
                         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                         exit 1
                         ;;
@@ -125,19 +119,19 @@ blocks:
                   # Timeout
                   echo ""
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  echo "⏰ TIMEOUT: Drone build took longer than ${MAX_WAIT} seconds"
-                  echo "🔗 Check status manually: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
+                  echo "TIMEOUT: Drone build took longer than ${MAX_WAIT} seconds"
+                  echo "Check status manually: ${DRONE_SERVER}/${SEMAPHORE_GIT_REPO_SLUG}/${BUILD_NUMBER}"
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   exit 1
                   
                 else
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  echo "❌ Failed to trigger Drone build"
+                  echo "Failed to trigger Drone build"
                   echo "HTTP Code: $HTTP_CODE"
                   echo "Response: $BODY"
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   exit 1
                 fi
               else
-                echo "⏭️  Skipping Drone trigger - not on main branch (current: $SEMAPHORE_GIT_BRANCH)"
+                echo "Skipping Drone trigger - not on main branch (current: $SEMAPHORE_GIT_BRANCH)"
               fi
