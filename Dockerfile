@@ -1,6 +1,6 @@
 # Stage 1: Build with Maven + JDK 21 (خفيف)
 # نستخدم صورة Maven الرسمية المبنية على temurin 21
-FROM maven:3.9-eclipse-temurin-21 AS builder
+FROM maven:3.9-eclipse-temurin-25 AS builder
 
 # تحديد مجلد العمل
 WORKDIR /app
@@ -19,7 +19,7 @@ RUN mvn -q -e -DskipTests -Denforcer.skip=true clean package
 
 # Stage 2: Runtime JRE فقط (أخف)
 # نستخدم صورة JRE فقط لأننا لا نحتاج JDK كامل للتشغيل
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre-jammy-ea
 
 WORKDIR /app
 
