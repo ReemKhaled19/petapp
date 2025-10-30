@@ -2,46 +2,55 @@ kind: pipeline
 type: docker
 name: build-and-push-from-ci
 
-services:
-  - name: docker
-    image: docker:27-dind
-    privileged: true
-    volumes:
-      - name: dockersock
-        path: /var/run
-
-volumes:
-  - name: dockersock
-    temp: {}
-
+# No DinD service - we'll use the host's Docker directly
 steps:
-  - name: wait-for-docker
-    image: docker:27-cli
-    volumes:
-      - name: dockersock
-        path: /var/run
-    commands:
-      - sleep 5
-      - docker version
-
   - name: build_and_push_to_dockerhub
     image: docker:27-cli
     volumes:
       - name: dockersock
-        path: /var/run
+        path: /var/run/docker.sock
     environment:
       DOCKER_USERNAME:
         from_secret: docker_username
       DOCKER_PASSWORD:
         from_secret: docker_password
     commands:
-      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-      - docker build -t mohamedelgarhy/spring-petclinic:latest .
-      - docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
-      - docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
-      - docker push mohamedelgarhy/spring-petclinic:latest
-      - docker push mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
-      - docker push mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
+      - |
+        echo "🔍 Checking Docker connection..."
+        docker version
+        echo ""
+        
+        echo "🔐 Logging into Docker Hub..."
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        echo ""
+        
+        echo "🏗️  Building Docker image..."
+        docker build -t mohamedelgarhy/spring-petclinic:latest .
+        echo ""
+        
+        echo "🏷️  Tagging images..."
+        docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
+        docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
+        echo ""
+        
+        echo "📤 Pushing images to Docker Hub..."
+        docker push mohamedelgarhy/spring-petclinic:latest
+        docker push mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
+        docker push mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
+        echo ""
+        
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🎉 Build and push completed successfully!"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📦 Images pushed:"
+        echo "   - mohamedelgarhy/spring-petclinic:latest"
+        echo "   - mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}"
+        echo "   - mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}"
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
 
 trigger:
   branch:
