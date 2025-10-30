@@ -2,7 +2,6 @@ kind: pipeline
 type: docker
 name: build-and-push-from-ci
 
-# استخدام Docker الموجود على الـ host مباشرة بدلاً من DinD
 steps:
   - name: check-docker
     image: docker:27-cli
@@ -14,7 +13,7 @@ steps:
         echo "🔍 Checking Docker connection..."
         docker version
         echo ""
-        echo "✅ Docker is ready!"
+        echo "Docker is ready!"
         echo ""
         docker info | grep -E "Server Version|Storage Driver|Operating System" || true
 
@@ -31,31 +30,31 @@ steps:
     commands:
       - |
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "🚀 Starting Docker Build Process"
+        echo "Starting Docker Build Process"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
         
-        echo "🔐 Logging into Docker Hub..."
+        echo "Logging into Docker Hub..."
         echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        echo "✅ Login successful!"
+        echo "Login successful!"
         echo ""
         
-        echo "🏗️  Building Docker image..."
+        echo "Building Docker image..."
         echo "   Repository: reemsolimman/spring-petclinic"
         echo "   Commit: ${DRONE_COMMIT_SHA:0:8}"
         echo "   Build: ${DRONE_BUILD_NUMBER}"
         echo ""
         docker build -t reemsolimman/spring-petclinic:latest .
-        echo "✅ Build completed!"
+        echo "Build completed!"
         echo ""
         
-        echo "🏷️  Tagging images..."
+        echo "Tagging images..."
         docker tag reemsolimman/spring-petclinic:latest reemsolimman/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
         docker tag reemsolimman/spring-petclinic:latest reemsolimman/spring-petclinic:${DRONE_BUILD_NUMBER}
-        echo "✅ Tagged: latest, ${DRONE_COMMIT_SHA:0:8}, ${DRONE_BUILD_NUMBER}"
+        echo "Tagged: latest, ${DRONE_COMMIT_SHA:0:8}, ${DRONE_BUILD_NUMBER}"
         echo ""
         
-        echo "📤 Pushing images to Docker Hub..."
+        echo "Pushing images to Docker Hub..."
         docker push reemsolimman/spring-petclinic:latest
         echo "   ✓ Pushed: latest"
         docker push reemsolimman/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
@@ -65,25 +64,23 @@ steps:
         echo ""
         
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "🎉 SUCCESS! All images pushed to Docker Hub"
+        echo "SUCCESS! All images pushed to Docker Hub"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
-        echo "📦 Available images:"
+        echo "Available images:"
         echo "   • reemsolimman/spring-petclinic:latest"
         echo "   • reemsolimman/spring-petclinic:${DRONE_COMMIT_SHA:0:8}"
         echo "   • reemsolimman/spring-petclinic:${DRONE_BUILD_NUMBER}"
         echo ""
-        echo "🔗 View on Docker Hub:"
+        echo "View on Docker Hub:"
         echo "   https://hub.docker.com/r/reemsolimman/spring-petclinic/tags"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Mount host's Docker socket
 volumes:
   - name: dockersock
     host:
       path: /var/run/docker.sock
 
-# 🔒 Only run when triggered by Semaphore API
 trigger:
   event:
     exclude:
