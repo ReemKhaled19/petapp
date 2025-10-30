@@ -41,26 +41,26 @@ steps:
         echo ""
         
         echo "🏗️  Building Docker image..."
-        echo "   Repository: mohamedelgarhy/spring-petclinic"
+        echo "   Repository: reemsolimman/spring-petclinic"
         echo "   Commit: ${DRONE_COMMIT_SHA:0:8}"
         echo "   Build: ${DRONE_BUILD_NUMBER}"
         echo ""
-        docker build -t mohamedelgarhy/spring-petclinic:latest .
+        docker build -t reemsolimman/spring-petclinic:latest .
         echo "✅ Build completed!"
         echo ""
         
         echo "🏷️  Tagging images..."
-        docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
-        docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
+        docker tag reemsolimman/spring-petclinic:latest reemsolimman/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
+        docker tag reemsolimman/spring-petclinic:latest reemsolimman/spring-petclinic:${DRONE_BUILD_NUMBER}
         echo "✅ Tagged: latest, ${DRONE_COMMIT_SHA:0:8}, ${DRONE_BUILD_NUMBER}"
         echo ""
         
         echo "📤 Pushing images to Docker Hub..."
-        docker push mohamedelgarhy/spring-petclinic:latest
+        docker push reemsolimman/spring-petclinic:latest
         echo "   ✓ Pushed: latest"
-        docker push mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
+        docker push reemsolimman/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
         echo "   ✓ Pushed: ${DRONE_COMMIT_SHA:0:8}"
-        docker push mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
+        docker push reemsolimman/spring-petclinic:${DRONE_BUILD_NUMBER}
         echo "   ✓ Pushed: ${DRONE_BUILD_NUMBER}"
         echo ""
         
@@ -69,12 +69,12 @@ steps:
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
         echo "📦 Available images:"
-        echo "   • mohamedelgarhy/spring-petclinic:latest"
-        echo "   • mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}"
-        echo "   • mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}"
+        echo "   • reemsolimman/spring-petclinic:latest"
+        echo "   • reemsolimman/spring-petclinic:${DRONE_COMMIT_SHA:0:8}"
+        echo "   • reemsolimman/spring-petclinic:${DRONE_BUILD_NUMBER}"
         echo ""
         echo "🔗 View on Docker Hub:"
-        echo "   https://hub.docker.com/r/mohamedelgarhy/spring-petclinic/tags"
+        echo "   https://hub.docker.com/r/reemsolimman/spring-petclinic/tags"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Mount host's Docker socket
