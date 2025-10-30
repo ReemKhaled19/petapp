@@ -10,7 +10,7 @@ steps:
         path: /var/run/docker.sock
     commands:
       - |
-        echo "🔍 Checking Docker connection..."
+        echo "Checking Docker connection..."
         docker version
         echo ""
         echo "Docker is ready!"
