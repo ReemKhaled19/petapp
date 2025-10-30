@@ -2,52 +2,27 @@ kind: pipeline
 type: docker
 name: build-and-push-from-ci
 
-services:
-  - name: docker
-    image: docker:27-dind
-    privileged: true
-    environment:
-      DOCKER_TLS_CERTDIR: ""
-    volumes:
-      - name: dockersock
-        path: /var/run
-
-volumes:
-  - name: dockersock
-    temp: {}
-
+# استخدام Docker الموجود على الـ host مباشرة بدلاً من DinD
 steps:
-  - name: wait-for-docker
+  - name: check-docker
     image: docker:27-cli
     volumes:
       - name: dockersock
-        path: /var/run
+        path: /var/run/docker.sock
     commands:
       - |
-        echo "🔍 Waiting for Docker daemon to start..."
-        
-        for i in $(seq 1 60); do
-          if docker -H unix:///var/run/docker.sock info >/dev/null 2>&1; then
-            echo "✅ Docker daemon is ready!"
-            echo ""
-            docker version
-            exit 0
-          fi
-          
-          if [ $((i % 5)) -eq 0 ]; then
-            echo "⏳ Still waiting... (attempt $i/60)"
-          fi
-          sleep 1
-        done
-        
-        echo "❌ ERROR: Docker daemon failed to start"
-        exit 1
+        echo "🔍 Checking Docker connection..."
+        docker version
+        echo ""
+        echo "✅ Docker is ready!"
+        echo ""
+        docker info | grep -E "Server Version|Storage Driver|Operating System" || true
 
   - name: build_and_push_to_dockerhub
     image: docker:27-cli
     volumes:
       - name: dockersock
-        path: /var/run
+        path: /var/run/docker.sock
     environment:
       DOCKER_USERNAME:
         from_secret: docker_username
@@ -55,38 +30,62 @@ steps:
         from_secret: docker_password
     commands:
       - |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🚀 Starting Docker Build Process"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        
         echo "🔐 Logging into Docker Hub..."
         echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        
+        echo "✅ Login successful!"
         echo ""
+        
         echo "🏗️  Building Docker image..."
-        docker build -t mohamedelgarhy/spring-petclinic:latest .
-        
+        echo "   Repository: mohamedelgarhy/spring-petclinic"
+        echo "   Commit: ${DRONE_COMMIT_SHA:0:8}"
+        echo "   Build: ${DRONE_BUILD_NUMBER}"
         echo ""
+        docker build -t mohamedelgarhy/spring-petclinic:latest .
+        echo "✅ Build completed!"
+        echo ""
+        
         echo "🏷️  Tagging images..."
         docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
         docker tag mohamedelgarhy/spring-petclinic:latest mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
-        
+        echo "✅ Tagged: latest, ${DRONE_COMMIT_SHA:0:8}, ${DRONE_BUILD_NUMBER}"
         echo ""
+        
         echo "📤 Pushing images to Docker Hub..."
         docker push mohamedelgarhy/spring-petclinic:latest
+        echo "   ✓ Pushed: latest"
         docker push mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}
+        echo "   ✓ Pushed: ${DRONE_COMMIT_SHA:0:8}"
         docker push mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}
-        
+        echo "   ✓ Pushed: ${DRONE_BUILD_NUMBER}"
         echo ""
+        
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "🎉 Build and push completed successfully!"
+        echo "🎉 SUCCESS! All images pushed to Docker Hub"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📦 Images pushed:"
-        echo "   - mohamedelgarhy/spring-petclinic:latest"
-        echo "   - mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}"
-        echo "   - mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}"
+        echo ""
+        echo "📦 Available images:"
+        echo "   • mohamedelgarhy/spring-petclinic:latest"
+        echo "   • mohamedelgarhy/spring-petclinic:${DRONE_COMMIT_SHA:0:8}"
+        echo "   • mohamedelgarhy/spring-petclinic:${DRONE_BUILD_NUMBER}"
+        echo ""
+        echo "🔗 View on Docker Hub:"
+        echo "   https://hub.docker.com/r/mohamedelgarhy/spring-petclinic/tags"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# 🔒 CRITICAL: Disable automatic Git triggers!
-# Drone will ONLY run when Semaphore calls the API
+# Mount host's Docker socket
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+
+# 🔒 Only run when triggered by Semaphore API
 trigger:
   event:
-    # Exclude ALL automatic triggers
     exclude:
       - push
       - pull_request
