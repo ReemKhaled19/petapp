@@ -1,33 +1,34 @@
 # ════════════════════════════════════════════════════════════
-# Stage 1: Build with Maven + JDK 21
+# Stage 1: Build JAR with Maven
 # ════════════════════════════════════════════════════════════
-FROM maven:3.9-eclipse-temurin-21 AS builder
+FROM ubuntu:22.04 AS builder
 
-# تحديد مجلد العمل
-WORKDIR /app
-
-# نسخ ملفات الـ build أولاً للاستفادة من الكاش
-COPY pom.xml .
-RUN mvn -B dependency:go-offline
-
-# نسخ باقي كود المصدر
-COPY src ./src
-
-# بناء المشروع وتخطي الاختبارات
-RUN mvn -q -e -DskipTests -Denforcer.skip=true clean package
-
-# ════════════════════════════════════════════════════════════
-# Stage 2: Runtime JRE فقط (أخف وأسرع)
-# ════════════════════════════════════════════════════════════
-FROM eclipse-temurin:21-jre-jammy
+# ثبّت Java 21 و Maven
+RUN apt-get update && \
+    apt-get install -y openjdk-21-jdk maven && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# نسخ ملف الـ JAR فقط من الـ builder
+# نسخ كل الملفات
+COPY . .
+
+# بناء المشروع
+RUN mvn clean package -DskipTests -Denforcer.skip=true
+
+# ════════════════════════════════════════════════════════════
+# Stage 2: Runtime with OpenJDK 21
+# ════════════════════════════════════════════════════════════
+FROM openjdk:21-jdk-slim
+
+WORKDIR /app
+
+# نسخ الـ JAR من الـ builder
 COPY --from=builder /app/target/*.jar app.jar
 
 # تحديد البورت
 EXPOSE 8080
 
 # نقطة تشغيل الحاوية
-ENTRYPOINT ["java","-jar","app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
